@@ -1,6 +1,4 @@
-import 'dart:io';
 import 'matrices.dart';
-import 'dart:convert';
 
 class Network {
   int? seed;
