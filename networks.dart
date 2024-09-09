@@ -124,13 +124,15 @@ class Network {
 }
 
 void main() {
-  /*Network net = Network([2, 2, 2], [relu, softmax]);
+  Network net = Network([1, 2, 2], [relu, softmax]);
 
-  Matrix input = randn(1, 2);
-  Matrix output = randn(1, 2);
+  Matrix input = randn(1, 1);
+  Matrix output = fill(0, 1, 2);
+  output.setAt(0, 1, value: 1);
 
   print(input.toString());
   print(net._forward(input).toString());
-  net._backward(input, output);
-  print(net._forward(input).toString());*/
+  net.train([input], [output], 0.01, 1000);
+  print(net._forward(input).toString());
+  print(output.toString());
 }

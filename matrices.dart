@@ -52,6 +52,8 @@ class Matrix {
     return dimensions;
   }
 
+  List<int> getSize() => getDimensions();
+
   double getAt(int row, int col) {
     return (_matrix[row][col]).toDouble();
   }
@@ -280,7 +282,7 @@ Matrix sigmoidDeriv(Matrix matrix) {
 }
 
 Matrix softmax(Matrix matrix) {
-  return exponential(matrix) / sum(exponential(matrix), 1);
+  return exponential(matrix) / sum(exponential(matrix), 1).getAt(0, 0);
 }
 
 Matrix softmaxDeriv(Matrix matrix) {
