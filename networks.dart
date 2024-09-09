@@ -100,7 +100,7 @@ class Network {
         _backward(inputs[x], expected[x]);
         update(lr);
       }
-      print("epoch $i: ${mse(inputs[0], expected[0])}");
+      print("epoch ${i + 1}: ${mse(inputs[0], expected[0])}");
     }
   }
 
@@ -130,9 +130,7 @@ void main() {
   Matrix output = fill(0, 1, 2);
   output.setAt(0, 1, value: 1);
 
-  print(input.toString());
-  print(net._forward(input).toString());
-  net.train([input], [output], 0.01, 1000);
+  net.train([input], [output], 0.1, 5);
   print(net._forward(input).toString());
   print(output.toString());
 }
