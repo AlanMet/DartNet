@@ -32,7 +32,7 @@ void main() {
   Matrix output = fill(0, 1, 2);
   output.setAt(0, 1, value: 1);
 
-  net.train([input], [output], 0.01, 5);
+  net.train([input], [output], 0.1, 5);
   print(net._forward(input).toString());
   print(output.toString());
 }
