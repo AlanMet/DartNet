@@ -32,7 +32,7 @@ void main() {
   Matrix output = fill(0, 1, 2);
   output.setAt(0, 1, value: 1);
 
-  net.train([input], [output], 0.01, 1000);
+  net.train([input], [output], 0.01, 5);
   print(net._forward(input).toString());
   print(output.toString());
 }
@@ -41,14 +41,13 @@ void main() {
 The example below shows an example output, given the aove code. It makes a prediction which in this case is [0, 1] and is correct.
 ```
 beginning training
-epoch 0: 0.2510939097374368
-epoch 1: 0.2533151884930789
-epoch 2: 0.25649031497900676
-epoch 3: 0.26041589978481183
-epoch 4: 0.26491276849033973
-[0.37788215326849345, 0.6221178467315066]
+epoch 1: 0.2507944604037083
+epoch 2: 0.25284205440405766
+epoch 3: 0.25590826696030605
+epoch 4: 0.2597775694935288
+epoch 5: 0.26426020078006657
+[0.3805839174145019, 0.6194160825854982] 
 
 [0.0, 1.0] 
-
 ```
 
