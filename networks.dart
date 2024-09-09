@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'matrices.dart';
+import 'dart:convert';
 
 class Network {
   int? seed;
@@ -13,6 +14,17 @@ class Network {
       _gradb = [],
       _deltas = [];
 
+  /// Create a new network
+  /// - [architecture] The architecture of the network
+  /// - [activations] The activation functions of the network
+  /// - [seed] The seed for the random number generator
+  /// - Returns The network
+  /// - Example
+  /// ```dart
+  /// Network net = Network([1, 2, 2], [relu, softmax]);
+  /// ```
+  /// - Note
+  /// The length of the architecture list should be equal to the length of the activations list minus one
   Network(List<int> architecture, List<Matrix Function(Matrix)> activations) {
     _architecture = architecture;
     _activations = activations;
@@ -23,6 +35,14 @@ class Network {
     }
   }
 
+  /// Returns an independent copy of the network
+  Network clone() {
+    Network newNet = Network(_architecture, _activations);
+    newNet._weights = _weights;
+    newNet._biases = _biases;
+    return newNet;
+  }
+
   Matrix _activation(Matrix input, Matrix Function(Matrix) function) {
     return function(input);
   }
@@ -31,7 +51,7 @@ class Network {
     return derivative(function)(input);
   }
 
-  double mse(Matrix x, Matrix y) {
+  double _mse(Matrix x, Matrix y) {
     return mean(power(predict(x), 2));
   }
 
@@ -51,6 +71,9 @@ class Network {
     return _activated[_activated.length - 1];
   }
 
+  /// Predict the output of the network
+  /// - [x] The input data
+  /// - Returns The output of the network
   Matrix predict(Matrix x) {
     return _forward(x);
   }
@@ -84,13 +107,18 @@ class Network {
     _deltas = _deltas.reversed.toList();
   }
 
-  void update(double lr) {
+  void _update(double lr) {
     for (var i = 0; i < _architecture.length - 1; i++) {
       _weights[i] -= _gradw[i] * lr;
       _biases[i] -= _gradb[i] * lr;
     }
   }
 
+  /// Train the network
+  /// - [inputs] The input data
+  /// - [expected] The expected outputs
+  /// - [lr] The learning rate
+  /// - [epochs] The number of epochs
   void train(
       List<Matrix> inputs, List<Matrix> expected, double lr, int epochs) {
     print("beginning training");
@@ -98,28 +126,10 @@ class Network {
       for (var x = 0; x < inputs.length; x++) {
         _forward(inputs[x]);
         _backward(inputs[x], expected[x]);
-        update(lr);
+        _update(lr);
       }
-      print("epoch ${i + 1}: ${mse(inputs[0], expected[0])}");
+      print("epoch ${i + 1}: ${_mse(inputs[0], expected[0])}");
     }
-  }
-
-  void store(String name) {
-    String filePath = '$name.txt';
-    File file = File(filePath);
-
-    if (!file.existsSync()) {
-      file.createSync(recursive: true);
-    }
-
-    String content = "";
-    for (var weight in _weights) {
-      content += weight.toString();
-    }
-
-    file.writeAsStringSync(content);
-
-    print('Matrix stored successfully in $filePath');
   }
 }
 
