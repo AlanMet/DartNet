@@ -323,9 +323,9 @@ class Matrix {
 /// - [col] The number of columns in the matrix
 /// - [seed] The optional seed
 /// - Returns The matrix
-Matrix randn(int row, int col, {int? seed}) {
+Matrix randn(int row, int col, {double start = 0, double end = 1, int? seed}) {
   Matrix matrix = Matrix(row, col);
-  matrix.generateDouble(0, 1, seed: seed);
+  matrix.generateDouble(start, end, seed: seed);
   return matrix;
 }
 

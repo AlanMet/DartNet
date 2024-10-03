@@ -1,4 +1,5 @@
 import 'matrices.dart';
+import 'dart:math';
 
 class Network {
   int? seed;
@@ -28,9 +29,14 @@ class Network {
     _activations = activations;
 
     for (int x = 0; x < _architecture.length - 1; x++) {
-      _weights.add(randn(_architecture[x], _architecture[x + 1]));
+      _weights.add(XavierInit(_architecture[x], _architecture[x + 1]));
       _biases.add(zeros(1, _architecture[x + 1]));
     }
+  }
+
+  Matrix XavierInit(int input, int ouput) {
+    double limit = sqrt(6 / (input + ouput));
+    return randn(input, ouput, start: limit, end: -limit);
   }
 
   /// Returns an independent copy of the network
@@ -117,8 +123,10 @@ class Network {
   /// - [expected] The expected outputs
   /// - [lr] The learning rate
   /// - [epochs] The number of epochs
-  void train(
-      List<Matrix> inputs, List<Matrix> expected, double lr, int epochs) {
+  void train(List<Matrix> inputs, List<Matrix> expected, double lr, int epochs,
+      {bool verbose = false}) {
+    int frequency = epochs ~/ 10000;
+
     print("beginning training");
     for (var i = 0; i < epochs; i++) {
       for (var x = 0; x < inputs.length; x++) {
@@ -126,19 +134,22 @@ class Network {
         _backward(inputs[x], expected[x]);
         _update(lr);
       }
-      print("epoch ${i + 1}: ${_mse(inputs[0], expected[0])}");
+
+      if (verbose && i % frequency == 0) {
+        print("epoch ${i + 1}: ${_mse(inputs[0], expected[0])}");
+      }
     }
   }
 }
 
 void main() {
-  Network net = Network([1, 2, 2], [relu, softmax]);
+  Network net = Network([1, 2, 10], [relu, softmax]);
 
   Matrix input = randn(1, 1);
-  Matrix output = fill(0, 1, 2);
+  Matrix output = fill(0, 1, 10);
   output.setAt(0, 1, value: 1);
 
-  net.train([input], [output], 0.1, 5);
+  net.train([input], [output], 0.1, 1000);
   print(net._forward(input).toString());
   print(output.toString());
 }
