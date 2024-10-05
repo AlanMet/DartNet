@@ -1,5 +1,7 @@
 import 'matrices.dart';
 import 'dart:math';
+import 'dart:convert';
+import 'dart:io';
 
 class Network {
   int? seed;
@@ -140,16 +142,111 @@ class Network {
       }
     }
   }
+
+  String getActivationName(Function activation) {
+    if (activation == relu) {
+      return 'relu';
+    } else if (activation == softmax) {
+      return 'softmax';
+    } else if (activation == sigmoid) {
+      return 'sigmoid';
+    } else if (activation == tanH) {
+      return 'tanh';
+    } else if (activation == linear) {
+      return 'linear';
+    } else if (activation == leakyRelu) {
+      return 'leakyRelu';
+    } else {
+      throw Exception('Unknown activation function: $activation');
+    }
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'architecture': _architecture,
+      'weights': _weights.map((w) => w.getMatrix()).toList(),
+      'biases': _biases.map((b) => b.getMatrix()).toList(),
+      'activations': _activations
+          .map((f) => getActivationName(f))
+          .toList(), // Note: Store function names or types
+    };
+  }
+
+  Network.fromJson(Map<String, dynamic> json) {
+    _architecture = List<int>.from(json['architecture']);
+
+    // You need to implement a method to convert stored activation function names back to functions
+    _activations = (json['activations'] as List)
+        .map((activation) => _activationFunctionFromString(activation))
+        .toList();
+
+    _weights = (json['weights'] as List).map((matrix) {
+      // Make sure to convert each element to List<List<double>> correctly
+      return Matrix.fromList((matrix as List<dynamic>).map((row) {
+        return List<double>.from(row as List<dynamic>);
+      }).toList());
+    }).toList();
+
+    _biases = (json['biases'] as List).map((matrix) {
+      // Ensure to convert each bias matrix similarly
+      return Matrix.fromList((matrix as List<dynamic>).map((row) {
+        return List<double>.from(row as List<dynamic>);
+      }).toList());
+    }).toList();
+  }
+
+  Matrix Function(Matrix) _activationFunctionFromString(String name) {
+    switch (name) {
+      case 'relu':
+        return relu;
+      case 'softmax':
+        return softmax;
+      case 'sigmoid':
+        return sigmoid;
+      case 'tanh':
+        return tanH;
+      case 'linear':
+        return linear;
+      case 'leakyRelu':
+        return leakyRelu;
+      default:
+        throw Exception('Unknown activation function: $name');
+    }
+  }
+
+  void save(String filename) {
+    final file = File(filename);
+    file.writeAsStringSync(json.encode(toJson()));
+  }
+
+  /// Load the network from a file
+  static Network load(String filename) {
+    final file = File(filename);
+    final jsonString = file.readAsStringSync();
+    final Map<String, dynamic> json = jsonDecode(jsonString);
+    return Network.fromJson(json);
+  }
 }
 
 void main() {
+  // Create a network with specified layers and activation functions
   Network net = Network([1, 2, 10], [relu, softmax]);
 
+  // Create random input and target output
   Matrix input = randn(1, 1);
   Matrix output = fill(0, 1, 10);
-  output.setAt(0, 1, value: 1);
 
-  net.train([input], [output], 0.1, 1000);
-  print(net._forward(input).toString());
-  print(output.toString());
+  output.setAt(0, 1, value: 1); // Set the desired output for training
+
+  // Train the network with the input and output
+  net.train([input], [output], 0.1, 100);
+
+  // Save the trained network to a file
+  net.save('network.json');
+
+  // Load the network from the saved file
+  Network loadedNet = Network.load('network.json');
+
+  // Make a prediction with the loaded network using the same input
+  print(loadedNet.predict(input).toString());
 }
