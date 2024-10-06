@@ -31,14 +31,45 @@ class Network {
     _activations = activations;
 
     for (int x = 0; x < _architecture.length - 1; x++) {
-      _weights.add(XavierInit(_architecture[x], _architecture[x + 1]));
+      Matrix Function(int, int) init;
+      switch (activations[x]) {
+        case relu || leakyRelu:
+          init = HeInit;
+        case tanH || sigmoid || softmax || linear:
+          init = XavierInit;
+        default:
+          throw Exception('Unknown activation function: $activations[x]');
+      }
+
+      _weights.add(init(_architecture[x], _architecture[x + 1]));
       _biases.add(zeros(1, _architecture[x + 1]));
     }
   }
 
+  Matrix clipGradients(Matrix gradients, double threshold) {
+    return gradients.performFunction((g) => g > threshold
+        ? threshold
+        : g < -threshold
+            ? -threshold
+            : g);
+  }
+
+  /// Xavier initialization for a matrix
+  /// - [input] The number of input neurons (i.e., number of columns in the input matrix)
+  /// - [ouput] The number of output neurons (i.e., number of columns in the output matrix)
+  /// - [seed] Optional seed for random number generation
   Matrix XavierInit(int input, int ouput) {
     double limit = sqrt(6 / (input + ouput));
-    return randn(input, ouput, start: limit, end: -limit);
+    return randn(input, ouput, start: limit, end: -limit, seed: seed);
+  }
+
+  /// He initialization for a matrix
+  /// - [input] The number of input neurons (i.e., number of columns in the input matrix)
+  /// - [output] The number of output neurons (i.e., number of columns in the output matrix)
+  /// - [seed] Optional seed for random number generation
+  Matrix HeInit(int input, int output) {
+    double limit = sqrt(2 / input);
+    return randn(input, output, start: -limit, end: limit, seed: seed);
   }
 
   /// Returns an independent copy of the network
@@ -134,6 +165,9 @@ class Network {
       for (var x = 0; x < inputs.length; x++) {
         _forward(inputs[x]);
         _backward(inputs[x], expected[x]);
+        for (Matrix matrix in _weights) {
+          clipGradients(matrix, 5.0);
+        }
         _update(lr);
       }
 
