@@ -361,6 +361,13 @@ Matrix power(Matrix matrix, int x) {
   return matrix.performFunction((a) => pow(a, x));
 }
 
+///scalar root of a matrix
+/// - [matrix] The matrix to perform the operation on
+/// - Returns The new matrix
+Matrix sqareRoot(Matrix matrix) {
+  return matrix.performFunction((a) => sqrt(a));
+}
+
 ///dot product of two matrices
 /// - [matrixA] The first matrix
 /// - [matrixB] The second matrix

@@ -15,6 +15,14 @@ class Network {
       _gradb = [],
       _deltas = [];
 
+  late List<Matrix> _mW; // Moving averages for weights
+  late List<Matrix> _vW; // Squared gradients for weights
+  late List<Matrix> _mB; // Moving averages for biases
+  late List<Matrix> _vB; // Squared gradients for biases
+  double _beta1 = 0.9; // Exponential decay rate for the first moment
+  double _beta2 = 0.999; // Exponential decay rate for the second moment
+  double _epsilon = 1e-8;
+
   /// Create a new network
   /// - [architecture] The architecture of the network
   /// - [activations] The activation functions of the network
@@ -44,6 +52,15 @@ class Network {
       _weights.add(init(_architecture[x], _architecture[x + 1]));
       _biases.add(zeros(1, _architecture[x + 1]));
     }
+
+    _mW = List.generate(_architecture.length - 1,
+        (index) => zeros(_architecture[index], _architecture[index + 1]));
+    _vW = List.generate(_architecture.length - 1,
+        (index) => zeros(_architecture[index], _architecture[index + 1]));
+    _mB = List.generate(_architecture.length - 1,
+        (index) => zeros(1, _architecture[index + 1]));
+    _vB = List.generate(_architecture.length - 1,
+        (index) => zeros(1, _architecture[index + 1]));
   }
 
   Matrix clipGradients(Matrix gradients, double threshold) {
@@ -144,10 +161,35 @@ class Network {
     _deltas = _deltas.reversed.toList();
   }
 
-  void _update(double lr) {
+  void _update(double lr, int t) {
+    _updateAdam(lr, t);
+  }
+
+  void _updateAdam(double lr, int t) {
     for (var i = 0; i < _architecture.length - 1; i++) {
-      _weights[i] -= _gradw[i] * lr;
-      _biases[i] -= _gradb[i] * lr;
+      // Update m and v for weights
+      _mW[i] = (_mW[i] * _beta1) + (_gradw[i] * (1 - _beta1));
+      _vW[i] = (_vW[i] * _beta2) + (power(_gradw[i], 2) * (1 - _beta2));
+
+      // Bias-corrected estimates
+      var mHatW = _mW[i] / (1 - pow(_beta1, t));
+      var vHatW = _vW[i] / (1 - pow(_beta2, t));
+
+      // Update weights
+      _weights[i] -= (mHatW * lr) /
+          (sqareRoot(vHatW) + fill(_epsilon, vHatW.getRow(), vHatW.getCol()));
+
+      // Update m and v for biases
+      _mB[i] = (_mB[i] * _beta1) + (_gradb[i] * (1 - _beta1));
+      _vB[i] = (_vB[i] * _beta2) + (power(_gradb[i], 2) * (1 - _beta2));
+
+      // Bias-corrected estimates
+      var mHatB = _mB[i] / (1 - pow(_beta1, t));
+      var vHatB = _vB[i] / (1 - pow(_beta2, t));
+
+      // Update biases
+      _biases[i] -= (mHatB * lr) /
+          (sqareRoot(vHatB) + fill(_epsilon, mHatB.getRow(), mHatB.getRow()));
     }
   }
 
@@ -159,6 +201,7 @@ class Network {
   void train(List<Matrix> inputs, List<Matrix> expected, double lr, int epochs,
       {bool verbose = false}) {
     int frequency = epochs ~/ 10000;
+    int t = 0;
 
     print("beginning training");
     for (var i = 0; i < epochs; i++) {
@@ -168,7 +211,9 @@ class Network {
         for (Matrix matrix in _weights) {
           clipGradients(matrix, 5.0);
         }
-        _update(lr);
+        _update(lr, t);
+
+        t += 1;
       }
 
       if (verbose && i % frequency == 0) {
