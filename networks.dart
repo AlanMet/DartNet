@@ -189,7 +189,7 @@ class Network {
 
       // Update biases
       _biases[i] -= (mHatB * lr) /
-          (sqareRoot(vHatB) + fill(_epsilon, mHatB.getRow(), mHatB.getRow()));
+          (sqareRoot(vHatB) + fill(_epsilon, vHatB.getRow(), vHatB.getCol()));
     }
   }
 
