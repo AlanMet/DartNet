@@ -39,12 +39,6 @@ class Matrix {
     empty();
   }
 
-  Matrix.fromList(List<List<double>> list) {
-    _row = list.length;
-    _col = list[0].length;
-    _matrix = List<List<double>>.from(list);
-  }
-
   int getRow() {
     return _row;
   }
@@ -361,13 +355,6 @@ Matrix power(Matrix matrix, int x) {
   return matrix.performFunction((a) => pow(a, x));
 }
 
-///scalar root of a matrix
-/// - [matrix] The matrix to perform the operation on
-/// - Returns The new matrix
-Matrix sqareRoot(Matrix matrix) {
-  return matrix.performFunction((a) => sqrt(a));
-}
-
 ///dot product of two matrices
 /// - [matrixA] The first matrix
 /// - [matrixB] The second matrix
@@ -417,67 +404,19 @@ Matrix sigmoidDeriv(Matrix matrix) {
       (x) => ((1 / (1 + exp(-x))) * (1 - (1 / (1 + exp(-x))))));
 }
 
-/// Softmax function for a 2D matrix
-/// - [matrix] The matrix to find the softmax
-/// - [axis] The axis to compute the softmax along (0 for columns, 1 for rows)
-/// - Returns The new matrix with softmax applied
-Matrix softmax(Matrix matrix, {int axis = 1}) {
-  if (axis < 0 || axis > 1) {
-    throw ArgumentError("Axis must be 0 (for columns) or 1 (for rows).");
-  }
-
-  Matrix expMatrix = matrix.performFunction((x) => exp(x));
-  Matrix sumMatrix;
-
-  if (axis == 0) {
-    // Sum along the columns (vertical sum)
-    sumMatrix = expMatrix.sum(axis: 0);
-  } else {
-    // Sum along the rows (horizontal sum)
-    sumMatrix = expMatrix.sum(axis: 1);
-  }
-
-  // Reshape sumMatrix to align dimensions for broadcasting
-  Matrix softmaxMatrix = Matrix(matrix.getRow(), matrix.getCol());
-
-  for (int i = 0; i < matrix.getRow(); i++) {
-    for (int j = 0; j < matrix.getCol(); j++) {
-      // For axis = 0 (columns), divide each element by the sum of its column
-      // For axis = 1 (rows), divide each element by the sum of its row
-      double denominator =
-          (axis == 0) ? sumMatrix.getAt(j, 0) : sumMatrix.getAt(i, 0);
-      softmaxMatrix.setAt(i, j, value: expMatrix.getAt(i, j) / denominator);
-    }
-  }
-
-  return softmaxMatrix;
+///tanh of a matrix
+/// - [matrix] The matrix to find the tanh
+/// - Returns The new matrix
+Matrix softmax(Matrix matrix) {
+  return exponential(matrix) / sum(exponential(matrix), 1).getAt(0, 0);
 }
 
-// Computes the derivative (Jacobian) of a softmax matrix.
-/// - [matrix] The matrix to find the derivative from the softmax output.
-/// - Returns The new matrix representing the Jacobian of the softmax.
+///derivative of a tanh matrix
+/// - [matrix] The matrix to find the derivative
+/// - Returns The new matrix
 Matrix softmaxDeriv(Matrix matrix) {
-  int rows = matrix.getRow();
-  int cols = matrix.getCol();
-
-  Matrix jacobian = Matrix(rows, cols);
-
-  for (int i = 0; i < rows; i++) {
-    for (int j = 0; j < cols; j++) {
-      double sigma_i = matrix.getAt(i, j);
-
-      if (i == j) {
-        // Diagonal elements
-        jacobian.setAt(i, j, value: sigma_i * (1 - sigma_i));
-      } else {
-        // Off-diagonal elements
-        double sigma_j = matrix.getAt(i, j);
-        jacobian.setAt(i, j, value: -sigma_i * sigma_j);
-      }
-    }
-  }
-
-  return jacobian;
+  Matrix newMatrix = fill(1, matrix.getRow(), matrix.getCol());
+  return matrix * (newMatrix - matrix);
 }
 
 ///tanh of a matrix

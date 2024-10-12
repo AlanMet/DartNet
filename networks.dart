@@ -1,7 +1,5 @@
 import 'matrices.dart';
 import 'dart:math';
-import 'dart:convert';
-import 'dart:io';
 
 class Network {
   int? seed;
@@ -14,14 +12,6 @@ class Network {
       _gradw = [],
       _gradb = [],
       _deltas = [];
-
-  late List<Matrix> _mW; // Moving averages for weights
-  late List<Matrix> _vW; // Squared gradients for weights
-  late List<Matrix> _mB; // Moving averages for biases
-  late List<Matrix> _vB; // Squared gradients for biases
-  double _beta1 = 0.9; // Exponential decay rate for the first moment
-  double _beta2 = 0.999; // Exponential decay rate for the second moment
-  double _epsilon = 1e-8;
 
   /// Create a new network
   /// - [architecture] The architecture of the network
@@ -39,54 +29,14 @@ class Network {
     _activations = activations;
 
     for (int x = 0; x < _architecture.length - 1; x++) {
-      Matrix Function(int, int) init;
-      switch (activations[x]) {
-        case relu || leakyRelu:
-          init = HeInit;
-        case tanH || sigmoid || softmax || linear:
-          init = XavierInit;
-        default:
-          throw Exception('Unknown activation function: $activations[x]');
-      }
-
-      _weights.add(init(_architecture[x], _architecture[x + 1]));
+      _weights.add(XavierInit(_architecture[x], _architecture[x + 1]));
       _biases.add(zeros(1, _architecture[x + 1]));
     }
-
-    _mW = List.generate(_architecture.length - 1,
-        (index) => zeros(_architecture[index], _architecture[index + 1]));
-    _vW = List.generate(_architecture.length - 1,
-        (index) => zeros(_architecture[index], _architecture[index + 1]));
-    _mB = List.generate(_architecture.length - 1,
-        (index) => zeros(1, _architecture[index + 1]));
-    _vB = List.generate(_architecture.length - 1,
-        (index) => zeros(1, _architecture[index + 1]));
   }
 
-  Matrix clipGradients(Matrix gradients, double threshold) {
-    return gradients.performFunction((g) => g > threshold
-        ? threshold
-        : g < -threshold
-            ? -threshold
-            : g);
-  }
-
-  /// Xavier initialization for a matrix
-  /// - [input] The number of input neurons (i.e., number of columns in the input matrix)
-  /// - [ouput] The number of output neurons (i.e., number of columns in the output matrix)
-  /// - [seed] Optional seed for random number generation
   Matrix XavierInit(int input, int ouput) {
     double limit = sqrt(6 / (input + ouput));
-    return randn(input, ouput, start: limit, end: -limit, seed: seed);
-  }
-
-  /// He initialization for a matrix
-  /// - [input] The number of input neurons (i.e., number of columns in the input matrix)
-  /// - [output] The number of output neurons (i.e., number of columns in the output matrix)
-  /// - [seed] Optional seed for random number generation
-  Matrix HeInit(int input, int output) {
-    double limit = sqrt(2 / input);
-    return randn(input, output, start: -limit, end: limit, seed: seed);
+    return randn(input, ouput, start: limit, end: -limit);
   }
 
   /// Returns an independent copy of the network
@@ -161,42 +111,10 @@ class Network {
     _deltas = _deltas.reversed.toList();
   }
 
-  void _update(double lr, int t) {
-    _regularUpdate(lr);
-  }
-
-  void _regularUpdate(double lr) {
+  void _update(double lr) {
     for (var i = 0; i < _architecture.length - 1; i++) {
       _weights[i] -= _gradw[i] * lr;
       _biases[i] -= _gradb[i] * lr;
-    }
-  }
-
-  void _updateAdam(double lr, int t) {
-    for (var i = 0; i < _architecture.length - 1; i++) {
-      // Update m and v for weights
-      _mW[i] = (_mW[i] * _beta1) + (_gradw[i] * (1 - _beta1));
-      _vW[i] = (_vW[i] * _beta2) + (power(_gradw[i], 2) * (1 - _beta2));
-
-      // Bias-corrected estimates
-      var mHatW = _mW[i] / (1 - pow(_beta1, t));
-      var vHatW = _vW[i] / (1 - pow(_beta2, t));
-
-      // Update weights
-      _weights[i] -= (mHatW * lr) /
-          (sqareRoot(vHatW) + fill(_epsilon, vHatW.getRow(), vHatW.getCol()));
-
-      // Update m and v for biases
-      _mB[i] = (_mB[i] * _beta1) + (_gradb[i] * (1 - _beta1));
-      _vB[i] = (_vB[i] * _beta2) + (power(_gradb[i], 2) * (1 - _beta2));
-
-      // Bias-corrected estimates
-      var mHatB = _mB[i] / (1 - pow(_beta1, t));
-      var vHatB = _vB[i] / (1 - pow(_beta2, t));
-
-      // Update biases
-      _biases[i] -= (mHatB * lr) /
-          (sqareRoot(vHatB) + fill(_epsilon, vHatB.getRow(), vHatB.getCol()));
     }
   }
 
@@ -208,19 +126,13 @@ class Network {
   void train(List<Matrix> inputs, List<Matrix> expected, double lr, int epochs,
       {bool verbose = false}) {
     int frequency = epochs ~/ 10000;
-    int t = 0;
 
     print("beginning training");
     for (var i = 0; i < epochs; i++) {
       for (var x = 0; x < inputs.length; x++) {
         _forward(inputs[x]);
         _backward(inputs[x], expected[x]);
-        for (Matrix matrix in _weights) {
-          clipGradients(matrix, 5.0);
-        }
-        _update(lr, t);
-
-        t += 1;
+        _update(lr);
       }
 
       if (verbose && i % frequency == 0) {
@@ -228,94 +140,16 @@ class Network {
       }
     }
   }
-
-  String getActivationName(Function activation) {
-    if (activation == relu) {
-      return 'relu';
-    } else if (activation == softmax) {
-      return 'softmax';
-    } else if (activation == sigmoid) {
-      return 'sigmoid';
-    } else if (activation == tanH) {
-      return 'tanh';
-    } else if (activation == linear) {
-      return 'linear';
-    } else if (activation == leakyRelu) {
-      return 'leakyRelu';
-    } else {
-      throw Exception('Unknown activation function: $activation');
-    }
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'architecture': _architecture,
-      'weights': _weights.map((w) => w.getMatrix()).toList(),
-      'biases': _biases.map((b) => b.getMatrix()).toList(),
-      'activations': _activations
-          .map((f) => getActivationName(f))
-          .toList(), // Note: Store function names or types
-    };
-  }
-
-  Network.fromJson(Map<String, dynamic> json) {
-    _architecture = List<int>.from(json['architecture']);
-
-    // You need to implement a method to convert stored activation function names back to functions
-    _activations = (json['activations'] as List)
-        .map((activation) => _activationFunctionFromString(activation))
-        .toList();
-
-    _weights = (json['weights'] as List).map((matrix) {
-      // Make sure to convert each element to List<List<double>> correctly
-      return Matrix.fromList((matrix as List<dynamic>).map((row) {
-        return List<double>.from(row as List<dynamic>);
-      }).toList());
-    }).toList();
-
-    _biases = (json['biases'] as List).map((matrix) {
-      // Ensure to convert each bias matrix similarly
-      return Matrix.fromList((matrix as List<dynamic>).map((row) {
-        return List<double>.from(row as List<dynamic>);
-      }).toList());
-    }).toList();
-  }
-
-  Matrix Function(Matrix) _activationFunctionFromString(String name) {
-    switch (name) {
-      case 'relu':
-        return relu;
-      case 'softmax':
-        return softmax;
-      case 'sigmoid':
-        return sigmoid;
-      case 'tanh':
-        return tanH;
-      case 'linear':
-        return linear;
-      case 'leakyRelu':
-        return leakyRelu;
-      default:
-        throw Exception('Unknown activation function: $name');
-    }
-  }
-
-  void save(String filename) {
-    final file = File(filename);
-    file.writeAsStringSync(json.encode(toJson()));
-  }
-
-  /// Load the network from a file
-  static Network load(String filename) {
-    final file = File(filename);
-    final jsonString = file.readAsStringSync();
-    final Map<String, dynamic> json = jsonDecode(jsonString);
-    return Network.fromJson(json);
-  }
 }
 
 void main() {
-  Matrix input = randn(1, 3);
-  print(input);
-  print(softmax(input));
+  Network net = Network([1, 2, 10], [relu, softmax]);
+
+  Matrix input = randn(1, 1);
+  Matrix output = fill(0, 1, 10);
+  output.setAt(0, 1, value: 1);
+
+  net.train([input], [output], 0.1, 1000);
+  print(net._forward(input).toString());
+  print(output.toString());
 }
