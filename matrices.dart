@@ -279,15 +279,6 @@ class Matrix {
     return hadamardProduct(matrixB);
   }
 
-  Matrix clip(double min, double max) {
-    return performFunction((a) {
-      if (a > max || a < min) {
-        return 0.0;
-      }
-      return a;
-    });
-  }
-
   /// Multiply two matrices
   /// - [matrixB] The matrix to multiply
   /// - Returns The new matrix
@@ -319,6 +310,30 @@ class Matrix {
       }
     }
     return matrix;
+  }
+
+  Matrix clip(double min, double max) {
+    return performFunction((a) {
+      if (a > max || a < min) {
+        return 0.0;
+      }
+      return a;
+    });
+  }
+
+  Matrix Dropout(double rate) {
+    if (rate < 0 || rate > 1) {
+      throw Exception("Dropout rate must be between 0 and 1");
+    }
+    Random random = Random();
+    //usually a mask is applied
+    return performFunction((a) {
+      if (random.nextDouble() < rate) {
+        return 0.0;
+      }
+      //scale the values to account for the dropout
+      return a * (1.0 / (1.0 - rate));
+    });
   }
 
   double max() {

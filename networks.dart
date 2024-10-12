@@ -59,7 +59,7 @@ class Network {
     return derivative(function)(input);
   }
 
-  Matrix _forward(Matrix input) {
+  Matrix _forward(Matrix input, {double dropout = 0.0}) {
     _preActivated = [];
     _activated = [];
 
@@ -68,7 +68,8 @@ class Network {
 
     for (var i = 0; i < _architecture.length - 1; i++) {
       _preActivated.add(dot(_activated[i], _weights[i]) + _biases[i]);
-      _activated.add(_activation(_preActivated[i + 1], _activations[i]));
+      _activated.add(
+          _activation(_preActivated[i + 1], _activations[i]).Dropout(dropout));
     }
 
     //print(_activated[_activated.length - 1].toString());
@@ -78,8 +79,8 @@ class Network {
   /// Predict the output of the network
   /// - [x] The input data
   /// - Returns The output of the network
-  Matrix predict(Matrix x) {
-    return _forward(x);
+  Matrix predict(Matrix x, {double dropout = 0.0}) {
+    return _forward(x, dropout: dropout);
   }
 
   void setLoss(Matrix Function(Matrix x, Matrix y) function) {
@@ -166,13 +167,13 @@ class Network {
   /// - [lr] The learning rate
   /// - [epochs] The number of epochs
   void train(List<Matrix> inputs, List<Matrix> expected, double lr, int epochs,
-      {bool verbose = false}) {
+      {double dropout = 0.2, bool verbose = false}) {
     int frequency = epochs ~/ 10000;
 
     print("beginning training");
     for (var i = 0; i < epochs; i++) {
       for (var x = 0; x < inputs.length; x++) {
-        _forward(inputs[x]);
+        _forward(inputs[x], dropout: dropout);
         _backward(inputs[x], expected[x]);
         _update(lr);
         if (verbose && i % 1 == 0) {
