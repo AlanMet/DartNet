@@ -177,7 +177,7 @@ class Network {
         _update(lr);
         if (verbose && i % 1 == 0) {
           print(
-              "epoch ${i + 1}: ${getLossFunction()(inputs[i], _activated.last)}");
+              "epoch ${i + 1}: ${getLossFunction()(_activated.last, expected[i])}");
         }
       }
     }
