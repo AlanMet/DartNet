@@ -162,7 +162,14 @@ class Network {
   }
 
   void _update(double lr, int t) {
-    _updateAdam(lr, t);
+    _regularUpdate(lr);
+  }
+
+  void _regularUpdate(double lr) {
+    for (var i = 0; i < _architecture.length - 1; i++) {
+      _weights[i] -= _gradw[i] * lr;
+      _biases[i] -= _gradb[i] * lr;
+    }
   }
 
   void _updateAdam(double lr, int t) {
@@ -308,24 +315,7 @@ class Network {
 }
 
 void main() {
-  // Create a network with specified layers and activation functions
-  Network net = Network([1, 2, 10], [relu, softmax]);
-
-  // Create random input and target output
-  Matrix input = randn(1, 1);
-  Matrix output = fill(0, 1, 10);
-
-  output.setAt(0, 1, value: 1); // Set the desired output for training
-
-  // Train the network with the input and output
-  net.train([input], [output], 0.1, 100);
-
-  // Save the trained network to a file
-  net.save('network.json');
-
-  // Load the network from the saved file
-  Network loadedNet = Network.load('network.json');
-
-  // Make a prediction with the loaded network using the same input
-  print(loadedNet.predict(input).toString());
+  Matrix input = randn(1, 3);
+  print(input);
+  print(softmax(input));
 }
