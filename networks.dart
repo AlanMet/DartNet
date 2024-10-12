@@ -119,7 +119,7 @@ class Network {
     _deltas = [];
 
     //dC/dz
-    _deltas.add(lossFunction(_activated.last, y));
+    _deltas.add(lossFunction(_activated.last.clip(1e-6, 1e10), y));
 
     //dC/dz*dz/dw
     _gradw
