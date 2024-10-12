@@ -59,10 +59,6 @@ class Network {
     return derivative(function)(input);
   }
 
-  double _mse(Matrix x, Matrix y) {
-    return mean(power(predict(x), 2));
-  }
-
   Matrix _forward(Matrix input) {
     _preActivated = [];
     _activated = [];
@@ -90,24 +86,24 @@ class Network {
     lossFunction = function;
   }
 
-  Matrix mse(Matrix x, Matrix y) {
-    return power(x - y, 2);
+  double mse(Matrix x, Matrix y) {
+    return mean(power(predict(x), 2));
   }
 
   Matrix mseDerivative(Matrix x, Matrix y) {
     return x - y;
   }
 
-  Matrix crossEntropy(Matrix x, Matrix y) {
+  double crossEntropy(Matrix x, Matrix y) {
     y.performFunction((value) => log(value));
-    return (x * -1) * y;
+    return mean((x * -1) * y);
   }
 
   Matrix crossEntropyDerivative(Matrix x, Matrix y) {
     return y - x;
   }
 
-  Matrix Function(Matrix x, Matrix y) getLossFunction() {
+  double Function(Matrix x, Matrix y) getLossFunction() {
     if (lossFunction == mseDerivative) {
       return mse;
     } else if (lossFunction == crossEntropyDerivative) {
