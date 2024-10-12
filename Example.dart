@@ -32,8 +32,9 @@ void getAccuracy(Network net) {
 }
 
 void main() {
-  Network net = Network([1, 10, 10, 1], [relu, tanH, tanH]);
+  Network net = Network([1, 10, 10, 1], [relu, tanH, softmax]);
   List<List<Matrix>> data = generateData(10000);
+  net.setLoss(net.crossEntropyDerivative);
 
   net.train(data[1], data[0], 0.0001, 10000, verbose: true);
   getAccuracy(net);

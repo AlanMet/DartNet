@@ -7,7 +7,15 @@ class Matrix {
 
   List<dynamic> operator [](int index) => _matrix[index];
   Matrix operator +(Matrix matrixB) => add(matrixB);
-  Matrix operator -(Matrix matrixB) => subtract(matrixB);
+  Matrix operator -(dynamic value) {
+    if (value is Matrix) {
+      return subtract(value);
+    } else {
+      Matrix matrixB = Matrix(_row, _col);
+      matrixB.fill(value.toDouble());
+      return subtract(matrixB);
+    }
+  }
 
   Matrix operator /(dynamic value) {
     if (value is Matrix) {
@@ -15,7 +23,7 @@ class Matrix {
       return divide(value);
     } else {
       //should multiply all values from 1 matrix with
-      return scalarDivide(value);
+      return scalarDivide(value.toDouble());
     }
   }
 
@@ -113,7 +121,17 @@ class Matrix {
     _matrix = List<List<double>>.generate(
         _row,
         (i) => List<double>.generate(
-            _col, (index) => (rand.nextDouble() * (max - min) + min),
+            _col, (index) => ((rand.nextDouble() * (max - min) + min) / 10),
+            growable: false),
+        growable: false);
+  }
+
+  void generateInt(int min, int max, {int? seed}) {
+    Random rand = Random(seed);
+    _matrix = List<List<double>>.generate(
+        _row,
+        (i) => List<double>.generate(
+            _col, (index) => (rand.nextInt(max - min) + min).toDouble(),
             growable: false),
         growable: false);
   }
@@ -255,6 +273,15 @@ class Matrix {
     return hadamardProduct(matrixB);
   }
 
+  Matrix clip(double min, double max) {
+    return performFunction((a) {
+      if (a > max || a < min) {
+        return 0.0;
+      }
+      return a;
+    });
+  }
+
   /// Multiply two matrices
   /// - [matrixB] The matrix to multiply
   /// - Returns The new matrix
@@ -286,6 +313,18 @@ class Matrix {
       }
     }
     return matrix;
+  }
+
+  double max() {
+    double max = double.negativeInfinity;
+    for (var row in _matrix) {
+      for (var column in row) {
+        if (column > max) {
+          max = column;
+        }
+      }
+    }
+    return max;
   }
 
   /// Check if two matrices are equivalent
@@ -323,10 +362,12 @@ class Matrix {
 /// - [col] The number of columns in the matrix
 /// - [seed] The optional seed
 /// - Returns The matrix
-Matrix randn(int row, int col, {double start = 0, double end = 1, int? seed}) {
+Matrix randn(int row, int col, {double start = -1, double end = 1, int? seed}) {
   Matrix matrix = Matrix(row, col);
-  matrix.generateDouble(start, end, seed: seed);
-  return matrix;
+  int min = (start * 10).toInt();
+  int max = (end * 10).toInt();
+  matrix.generateInt(min, max, seed: seed);
+  return matrix / 10;
 }
 
 /// Create a matrix with zeros
@@ -408,7 +449,10 @@ Matrix sigmoidDeriv(Matrix matrix) {
 /// - [matrix] The matrix to find the tanh
 /// - Returns The new matrix
 Matrix softmax(Matrix matrix) {
-  return exponential(matrix) / sum(exponential(matrix), 1).getAt(0, 0);
+  matrix = matrix.clip(1e-15, 1e10);
+  var max = matrix.max();
+  var exp = exponential(matrix - max);
+  return exp / sum(exp, 1).getAt(0, 0);
 }
 
 ///derivative of a tanh matrix

@@ -13,6 +13,8 @@ class Network {
       _gradb = [],
       _deltas = [];
 
+  late Matrix Function(Matrix, Matrix) lossFunction;
+
   /// Create a new network
   /// - [architecture] The architecture of the network
   /// - [activations] The activation functions of the network
@@ -29,14 +31,16 @@ class Network {
     _activations = activations;
 
     for (int x = 0; x < _architecture.length - 1; x++) {
-      _weights.add(XavierInit(_architecture[x], _architecture[x + 1]));
+      _weights.add(randn(_architecture[x], _architecture[x + 1]));
       _biases.add(zeros(1, _architecture[x + 1]));
     }
+
+    lossFunction = mseDerivative;
   }
 
   Matrix XavierInit(int input, int ouput) {
     double limit = sqrt(6 / (input + ouput));
-    return randn(input, ouput, start: limit, end: -limit);
+    return randn(input, ouput, start: -limit, end: limit);
   }
 
   /// Returns an independent copy of the network
@@ -82,13 +86,44 @@ class Network {
     return _forward(x);
   }
 
+  void setLoss(Matrix Function(Matrix x, Matrix y) function) {
+    lossFunction = function;
+  }
+
+  Matrix mse(Matrix x, Matrix y) {
+    return power(x - y, 2);
+  }
+
+  Matrix mseDerivative(Matrix x, Matrix y) {
+    return x - y;
+  }
+
+  Matrix crossEntropy(Matrix x, Matrix y) {
+    y.performFunction((value) => log(value));
+    return (x * -1) * y;
+  }
+
+  Matrix crossEntropyDerivative(Matrix x, Matrix y) {
+    return y - x;
+  }
+
+  Matrix Function(Matrix x, Matrix y) getLossFunction() {
+    if (lossFunction == mseDerivative) {
+      return mse;
+    } else if (lossFunction == crossEntropyDerivative) {
+      return crossEntropy;
+    } else {
+      return mse;
+    }
+  }
+
   void _backward(Matrix x, Matrix y) {
     _gradw = [];
     _gradb = [];
     _deltas = [];
 
     //dC/dz
-    _deltas.add(_activated.last - y);
+    _deltas.add(lossFunction(_activated.last, y));
 
     //dC/dz*dz/dw
     _gradw
@@ -111,7 +146,18 @@ class Network {
     _deltas = _deltas.reversed.toList();
   }
 
+  /// Update the weights and biases of the network
+  /// - [lr] The learning rate
+  /// - Returns None
+  /// to do : add other optimizers
   void _update(double lr) {
+    _gradientDescent(lr);
+  }
+
+  /// Update the weights and biases of the network
+  /// - [lr] The learning rate
+  /// - Returns None
+  void _gradientDescent(double lr) {
     for (var i = 0; i < _architecture.length - 1; i++) {
       _weights[i] -= _gradw[i] * lr;
       _biases[i] -= _gradb[i] * lr;
@@ -133,10 +179,10 @@ class Network {
         _forward(inputs[x]);
         _backward(inputs[x], expected[x]);
         _update(lr);
-      }
-
-      if (verbose && i % frequency == 0) {
-        print("epoch ${i + 1}: ${_mse(inputs[0], expected[0])}");
+        if (verbose && i % 1 == 0) {
+          print(
+              "epoch ${i + 1}: ${getLossFunction()(inputs[i], _activated.last)}");
+        }
       }
     }
   }
