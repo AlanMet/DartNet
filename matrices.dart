@@ -47,6 +47,12 @@ class Matrix {
     empty();
   }
 
+  Matrix.fromList(List<List<double>> list) {
+    _row = list.length;
+    _col = list[0].length;
+    _matrix = List<List<double>>.from(list);
+  }
+
   int getRow() {
     return _row;
   }
