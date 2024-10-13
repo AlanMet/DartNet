@@ -12,11 +12,13 @@ class Batch {
     for (var i = 0; i < length; i++) {
       net._forward(inputs[i], dropout: dropout);
       Matrix loss = net.lossFunction(net._activated.last, outputs[i]);
+      losses.add(loss);
     }
-    late Matrix avgLoss;
-    for (var i = 0; i < length; i++) {
+    Matrix avgLoss = losses[0];
+    for (var i = 1; i < length - 1; i++) {
       avgLoss += losses[i];
     }
+    avgLoss /= length;
     net._backward(avgLoss);
     net._update(lr);
   }
