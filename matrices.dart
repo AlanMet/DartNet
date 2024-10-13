@@ -283,7 +283,13 @@ class Matrix {
   /// - [matrixB] The matrix to multiply
   /// - Returns The new matrix
   Matrix hadamardProduct(Matrix matrixB) {
-    return _performOperation(matrixB, (a, b) => a * b);
+    return _performOperation(matrixB, (a, b) {
+      if (a.isNaN || b.isNaN) {
+        return 0.5;
+      } else {
+        return a * b;
+      }
+    });
   }
 
   /// Sum the matrix

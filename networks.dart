@@ -114,13 +114,13 @@ class Network {
     }
   }
 
-  void _backward(Matrix x, Matrix y) {
+  void _backward(Matrix loss) {
     _gradw = [];
     _gradb = [];
     _deltas = [];
 
     //dC/dz
-    _deltas.add(lossFunction(_activated.last.clip(1e-6, 1e10), y));
+    _deltas.add(loss);
 
     //dC/dz*dz/dw
     _gradw
@@ -167,16 +167,16 @@ class Network {
   /// - [lr] The learning rate
   /// - [epochs] The number of epochs
   void train(List<Matrix> inputs, List<Matrix> expected, double lr, int epochs,
-      {double dropout = 0.2, bool verbose = false}) {
-    int frequency = epochs ~/ 10000;
-
+      {double dropout = 0.2, bool verbose = true}) {
     print("beginning training");
     for (var i = 0; i < epochs; i++) {
       for (var x = 0; x < inputs.length; x++) {
         _forward(inputs[x], dropout: dropout);
-        _backward(inputs[x], expected[x]);
+        Matrix loss =
+            lossFunction(_activated.last.clip(1e-6, 1e10), expected[x]);
+        _backward(loss);
         _update(lr);
-        if (verbose && i % 1 == 0) {
+        if (verbose) {
           print(
               "epoch ${i + 1}: ${getLossFunction()(_activated.last, expected[i])}");
         }
