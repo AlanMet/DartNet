@@ -1,6 +1,27 @@
 import 'matrices.dart';
 import 'dart:math';
 
+class Batch {
+  List<Matrix> inputs;
+  List<Matrix> outputs;
+  Batch(this.inputs, this.outputs);
+  int get length => inputs.length;
+
+  void train(Network net, double lr, {double dropout = 0.2}) {
+    List<Matrix> losses = [];
+    for (var i = 0; i < length; i++) {
+      net._forward(inputs[i], dropout: dropout);
+      Matrix loss = net.lossFunction(net._activated.last, outputs[i]);
+    }
+    late Matrix avgLoss;
+    for (var i = 0; i < length; i++) {
+      avgLoss += losses[i];
+    }
+    net._backward(avgLoss);
+    net._update(lr);
+  }
+}
+
 class Network {
   int? seed;
   late List<int> _architecture;
